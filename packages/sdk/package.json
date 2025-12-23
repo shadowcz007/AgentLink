@@ -1,0 +1,40 @@
+{
+  "name": "@agentlink/sdk",
+  "version": "1.0.0",
+  "description": "AgentLink client SDK for cross-domain storage",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "clean": "rimraf dist"
+  },
+  "keywords": [
+    "agentlink",
+    "cross-domain",
+    "storage",
+    "iframe"
+  ],
+  "dependencies": {
+    "@agentlink/core": "file:../core"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "rimraf": "^4.4.0",
+    "tsup": "^8.0.0",
+    "typescript": "^5.0.2"
+  },
+  "peerDependencies": {
+    "broadcast-channel": "^5 || ^4",
+    "data-transport": "^5.0.1",
+    "localforage": "^1.10.0"
+  }
+}
+

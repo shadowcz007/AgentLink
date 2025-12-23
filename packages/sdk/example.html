@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>使用 AgentLink 的网站</title>
+</head>
+<body>
+  <h1>AgentLink 示例</h1>
+  <button id="saveBtn">保存数据</button>
+  <button id="loadBtn">加载数据</button>
+  <div id="result"></div>
+
+  <script type="module">
+    import { AgentLinkClient } from './dist/index.mjs';
+
+    // 创建客户端实例
+    const client = new AgentLinkClient({
+      serverUrl: 'http://localhost:3000', // 你的 AgentLink 服务地址
+    });
+
+    // 等待连接
+    client.onConnect(() => {
+      console.log('✅ 已连接到 AgentLink 存储服务');
+      document.getElementById('result').textContent = '已连接';
+    });
+
+    // 保存数据
+    document.getElementById('saveBtn').addEventListener('click', async () => {
+      try {
+        await client.setItem('user', {
+          name: '张三',
+          age: 25,
+          email: 'zhangsan@example.com'
+        });
+        document.getElementById('result').textContent = '数据已保存';
+      } catch (error) {
+        console.error('保存失败:', error);
+        document.getElementById('result').textContent = '保存失败: ' + error.message;
+      }
+    });
+
+    // 加载数据
+    document.getElementById('loadBtn').addEventListener('click', async () => {
+      try {
+        const user = await client.getItem('user');
+        document.getElementById('result').textContent = 
+          '加载的数据: ' + JSON.stringify(user, null, 2);
+      } catch (error) {
+        console.error('加载失败:', error);
+        document.getElementById('result').textContent = '加载失败: ' + error.message;
+      }
+    });
+
+    // 监听数据变更
+    client.onChange((data) => {
+      console.log('存储数据已变更:', data);
+      if (data.key === 'user') {
+        document.getElementById('result').textContent = 
+          '数据已更新: ' + JSON.stringify(data.value, null, 2);
+      }
+    });
+  </script>
+</body>
+</html>
