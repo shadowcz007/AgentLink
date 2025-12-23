@@ -20,13 +20,18 @@ export async function verifyAuth(request: NextRequest) {
   }
 }
 
-export function requireAuth(handler: (req: NextRequest, user: any) => Promise<NextResponse>) {
-  return async (req: NextRequest) => {
+export function requireAuth(
+  handler: (
+    req: NextRequest,
+    context: { params?: Promise<{ [key: string]: string }> | { [key: string]: string }; user: any }
+  ) => Promise<NextResponse>
+) {
+  return async (req: NextRequest, context?: { params?: Promise<{ [key: string]: string }> | { [key: string]: string } }) => {
     const user = await verifyAuth(req);
     if (!user) {
       return NextResponse.json({ error: '未授权' }, { status: 401 });
     }
-    return handler(req, user);
+    return handler(req, { ...context, user });
   };
 }
 

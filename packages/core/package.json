@@ -1,34 +1,33 @@
 {
-  "name": "@agentlink/core",
-  "version": "2.2.6",
-  "description": "Core storage library for cross-domain access",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "scripts": {
-    "build": "tsc",
-    "clean": "rimraf dist"
-  },
-  "keywords": [
-    "cross-database",
-    "indexeddb",
-    "websql",
-    "localstorage",
-    "localforage"
-  ],
-  "peerDependencies": {
-    "broadcast-channel": "^5 || ^4",
-    "data-transport": "^5.0.1",
-    "localforage": "^1.10.0"
-  },
-  "dependencies": {
-    "broadcast-channel": "^5.3.0",
-    "data-transport": "^5.0.1",
-    "localforage": "^1.10.0"
-  },
-  "devDependencies": {
-    "@types/localforage": "^0.0.34",
-    "rimraf": "^4.4.0",
-    "typescript": "^5.0.2"
-  }
+    "name": "@agentlink/core",
+    "version": "2.2.6",
+    "description": "Core storage library for cross-domain access",
+    "main": "dist/index.js",
+    "types": "dist/index.d.ts",
+    "scripts": {
+        "build": "tsc",
+        "clean": "rimraf dist"
+    },
+    "keywords": [
+        "cross-database",
+        "indexeddb",
+        "websql",
+        "localstorage",
+        "localforage"
+    ],
+    "peerDependencies": {
+        "broadcast-channel": "^5 || ^4",
+        "data-transport": "^5.0.1",
+        "localforage": "^1.10.0"
+    },
+    "dependencies": {
+        "broadcast-channel": "^5.3.0",
+        "data-transport": "^5.0.1",
+        "localforage": "^1.10.0"
+    },
+    "devDependencies": {
+        "@types/localforage": "^0.0.34",
+        "rimraf": "^4.4.0",
+        "typescript": "^5.0.2"
+    }
 }
-

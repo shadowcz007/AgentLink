@@ -19,9 +19,7 @@ export default async function StorageLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
-        {origin && (
-          <meta httpEquiv="Content-Security-Policy" content={`frame-ancestors ${origin};`} />
-        )}
+        {/* frame-ancestors 已通过中间件在 HTTP 响应头中设置 */}
       </head>
       <body suppressHydrationWarning>
         {children}

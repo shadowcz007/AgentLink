@@ -2,9 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware';
 import { deleteDomain, updateDomainStatus } from '@/lib/domains';
 
-export const DELETE = requireAuth(async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const DELETE = requireAuth(async (req: NextRequest, { params, user }) => {
   try {
-    const { id } = params;
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const { id } = resolvedParams as { id: string };
     await deleteDomain(id);
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -16,9 +17,10 @@ export const DELETE = requireAuth(async (req: NextRequest, { params }: { params:
   }
 });
 
-export const PATCH = requireAuth(async (req: NextRequest, { params }: { params: { id: string } }) => {
+export const PATCH = requireAuth(async (req: NextRequest, { params, user }) => {
   try {
-    const { id } = params;
+    const resolvedParams = params instanceof Promise ? await params : params;
+    const { id } = resolvedParams as { id: string };
     const { status } = await req.json();
 
     if (status !== 'active' && status !== 'inactive') {

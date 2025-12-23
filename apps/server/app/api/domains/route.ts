@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/middleware';
 import { getAllDomains, addDomain, deleteDomain, updateDomainStatus } from '@/lib/domains';
 
-export const GET = requireAuth(async (req: NextRequest) => {
+export const GET = requireAuth(async (req: NextRequest, { user }) => {
   try {
     const domains = await getAllDomains();
     return NextResponse.json(domains);
@@ -15,7 +15,7 @@ export const GET = requireAuth(async (req: NextRequest) => {
   }
 });
 
-export const POST = requireAuth(async (req: NextRequest) => {
+export const POST = requireAuth(async (req: NextRequest, { user }) => {
   try {
     const { domain } = await req.json();
 

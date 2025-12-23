@@ -14,9 +14,7 @@ export default async function StoragePage() {
   }
 
   // 验证域名是否在白名单中
-  console.log(`[Storage Page] 🔍 开始验证域名白名单 - Origin: ${origin}`);
   const isAllowed = await isDomainAllowedWithWildcard(origin);
-  console.log(`[Storage Page] ${isAllowed ? '✅' : '❌'} 域名验证结果: ${isAllowed ? '允许访问' : '拒绝访问'} - Origin: ${origin}`);
 
   if (!isAllowed) {
     return (

@@ -27,7 +27,6 @@ export async function addDomain(domain: string) {
   cache.clear();
   activeDomainsCache = null;
   activeDomainsCacheTime = 0; // 重置时间戳，强制下次重新加载
-  console.log(`[域名验证] ➕ 添加域名: ${domain}, 已清除缓存`);
   return db.domainWhitelist.create({
     data: { domain },
   });
@@ -38,7 +37,6 @@ export async function deleteDomain(id: string) {
   cache.clear();
   activeDomainsCache = null;
   activeDomainsCacheTime = 0; // 重置时间戳，强制下次重新加载
-  console.log(`[域名验证] ➖ 删除域名 ID: ${id}, 已清除缓存`);
   return db.domainWhitelist.delete({
     where: { id },
   });
@@ -60,7 +58,6 @@ export function clearCache() {
   cache.clear();
   activeDomainsCache = null;
   activeDomainsCacheTime = 0;
-  console.log('[域名验证] 🗑️ 已清除所有缓存');
 }
 
 export async function isDomainAllowed(domain: string): Promise<boolean> {
@@ -92,7 +89,6 @@ export async function isDomainAllowedWithWildcard(origin: string): Promise<boole
     hostname = url.hostname;
   } catch {
     // 如果 origin 不是有效的 URL，直接返回 false
-    console.log(`[域名验证] ❌ 无效的 origin: ${origin}`);
     return false;
   }
 
@@ -105,7 +101,6 @@ export async function isDomainAllowedWithWildcard(origin: string): Promise<boole
     });
     activeDomainsCache = domains.map(d => d.domain);
     activeDomainsCacheTime = now;
-    console.log(`[域名验证] 📋 加载活跃域名列表 (${activeDomainsCache.length} 个):`, activeDomainsCache);
   }
 
   // 检查缓存（使用 hostname 作为 key，在获取活跃域名列表之后）
@@ -137,24 +132,20 @@ export async function isDomainAllowedWithWildcard(origin: string): Promise<boole
   if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
     if (shouldMatch && !cached.result) {
       // 缓存显示拒绝，但活跃域名列表中有匹配，清除缓存并重新验证
-      console.log(`[域名验证] ⚠️ 缓存不一致 - Origin: ${origin}, Hostname: ${hostname}, 缓存结果: 拒绝, 但活跃域名列表中有匹配: ${matchedDomain}, 清除缓存并重新验证`);
       cache.delete(cacheKey);
     } else {
       // 缓存有效且一致
-      console.log(`[域名验证] ✅ 使用缓存 - Origin: ${origin}, Hostname: ${hostname}, 结果: ${cached.result ? '允许' : '拒绝'}, 活跃域名: [${activeDomainsCache.join(', ')}]`);
       return cached.result;
     }
   }
 
   // 执行验证
   if (shouldMatch) {
-    console.log(`[域名验证] ✅ ${matchedDomain.includes('*') ? '通配符' : '精确'}匹配 - Origin: ${origin}, Hostname: ${hostname}, 匹配域名: ${matchedDomain}`);
     cache.set(cacheKey, { result: true, timestamp: now });
     return true;
   }
 
   const result = false;
-  console.log(`[域名验证] ❌ 未匹配 - Origin: ${origin}, Hostname: ${hostname}, 活跃域名列表: [${activeDomainsCache.join(', ')}]`);
   cache.set(cacheKey, { result, timestamp: now });
   return result;
 }

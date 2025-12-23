@@ -11,8 +11,6 @@
   }
 
   try {
-    console.log('[Storage Client] Initializing storage for origin:', origin);
-    
     // 从 SDK 的打包文件中导入 OriginStorage
     // SDK 文件在构建时会被复制到 public/sdk.mjs
     const { OriginStorage } = await import('/sdk.mjs');
@@ -27,11 +25,8 @@
     
     // 将实例保存到 window，方便调试
     window.originStorage = storage;
-    
-    console.log('[Storage Client] ✅ Storage initialized successfully');
   } catch (error) {
-    console.error('[Storage Client] ❌ Failed to initialize storage:', error);
-    console.error('[Storage Client] Error details:', error.stack);
+    console.error('[Storage Client] Failed to initialize storage:', error);
   }
 })();
 
