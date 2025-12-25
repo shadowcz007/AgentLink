@@ -5796,6 +5796,28 @@ var AgentLinkClient = class {
   async keys() {
     return this.client.keys();
   }
+  /**
+   * 获取白名单信息
+   * @param includeAll 如果为true，返回所有白名单；如果为false，只返回当前域名的白名单信息
+   */
+  async getWhitelistInfo(includeAll = false) {
+    const baseUrl = this.serverUrl.replace("/storage", "");
+    const url = `${baseUrl}/api/whitelist/info${includeAll ? "?includeAll=true" : ""}`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Origin": typeof window !== "undefined" ? window.location.origin : ""
+      }
+    });
+    if (!response.ok) {
+      if (response.status === 403) {
+        const data = await response.json();
+        throw new Error(data.error || "\u57DF\u540D\u4E0D\u5728\u767D\u540D\u5355\u4E2D");
+      }
+      throw new Error(`\u83B7\u53D6\u767D\u540D\u5355\u4FE1\u606F\u5931\u8D25: ${response.statusText}`);
+    }
+    return await response.json();
+  }
 };
 
 // src/index.ts

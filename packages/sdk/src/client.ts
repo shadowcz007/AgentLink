@@ -13,6 +13,16 @@ export interface AgentLinkClientOptions {
   storageOptions?: Parameters<typeof import('localforage').createInstance>[0];
 }
 
+export interface WhitelistInfo {
+  domain: string;
+  description?: string | null;
+}
+
+export interface WhitelistResponse {
+  whitelist: WhitelistInfo | WhitelistInfo[] | null;
+  origin: string | null;
+}
+
 /**
  * AgentLink 客户端 SDK
  * 用于跨域访问存储服务
@@ -96,6 +106,32 @@ export class AgentLinkClient implements IOriginStorageClient {
    */
   async keys(): Promise<string[]> {
     return this.client.keys();
+  }
+
+  /**
+   * 获取白名单信息
+   * @param includeAll 如果为true，返回所有白名单；如果为false，只返回当前域名的白名单信息
+   */
+  async getWhitelistInfo(includeAll: boolean = false): Promise<WhitelistResponse> {
+    const baseUrl = this.serverUrl.replace('/storage', '');
+    const url = `${baseUrl}/api/whitelist/info${includeAll ? '?includeAll=true' : ''}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Origin': typeof window !== 'undefined' ? window.location.origin : '',
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 403) {
+        const data = await response.json();
+        throw new Error(data.error || '域名不在白名单中');
+      }
+      throw new Error(`获取白名单信息失败: ${response.statusText}`);
+    }
+
+    return await response.json();
   }
 }
 

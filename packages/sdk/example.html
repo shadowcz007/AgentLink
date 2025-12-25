@@ -7,8 +7,16 @@
 </head>
 <body>
   <h1>AgentLink 示例</h1>
-  <button id="saveBtn">保存数据</button>
-  <button id="loadBtn">加载数据</button>
+  <div style="margin-bottom: 20px;">
+    <h2>存储操作</h2>
+    <button id="saveBtn">保存数据</button>
+    <button id="loadBtn">加载数据</button>
+  </div>
+  <div style="margin-bottom: 20px;">
+    <h2>白名单信息</h2>
+    <button id="getWhitelistBtn">获取当前域名白名单信息</button>
+    <button id="getAllWhitelistBtn">获取所有白名单信息</button>
+  </div>
   <div id="result"></div>
 
   <script type="module">
@@ -58,6 +66,55 @@
       if (data.key === 'user') {
         document.getElementById('result').textContent = 
           '数据已更新: ' + JSON.stringify(data.value, null, 2);
+      }
+    });
+
+    // 获取当前域名的白名单信息
+    document.getElementById('getWhitelistBtn').addEventListener('click', async () => {
+      try {
+        const info = await client.getWhitelistInfo(false);
+        const resultDiv = document.getElementById('result');
+        if (info.whitelist) {
+          resultDiv.innerHTML = `
+            <h3>当前域名白名单信息：</h3>
+            <p><strong>域名：</strong>${info.whitelist.domain}</p>
+            <p><strong>描述：</strong>${info.whitelist.description || '无描述'}</p>
+            <p><strong>来源：</strong>${info.origin || '未知'}</p>
+            <pre>${JSON.stringify(info, null, 2)}</pre>
+          `;
+        } else {
+          resultDiv.textContent = '当前域名不在白名单中';
+        }
+      } catch (error) {
+        console.error('获取白名单信息失败:', error);
+        document.getElementById('result').textContent = '获取失败: ' + error.message;
+      }
+    });
+
+    // 获取所有白名单信息
+    document.getElementById('getAllWhitelistBtn').addEventListener('click', async () => {
+      try {
+        const info = await client.getWhitelistInfo(true);
+        const resultDiv = document.getElementById('result');
+        if (Array.isArray(info.whitelist) && info.whitelist.length > 0) {
+          let html = '<h3>所有白名单信息：</h3><ul>';
+          info.whitelist.forEach(item => {
+            html += `
+              <li>
+                <strong>域名：</strong>${item.domain}<br>
+                <strong>描述：</strong>${item.description || '无描述'}
+              </li>
+            `;
+          });
+          html += '</ul>';
+          html += `<pre>${JSON.stringify(info, null, 2)}</pre>`;
+          resultDiv.innerHTML = html;
+        } else {
+          resultDiv.textContent = '暂无白名单信息';
+        }
+      } catch (error) {
+        console.error('获取所有白名单信息失败:', error);
+        document.getElementById('result').textContent = '获取失败: ' + error.message;
       }
     });
   </script>

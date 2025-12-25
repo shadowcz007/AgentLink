@@ -13,6 +13,14 @@ interface AgentLinkClientOptions {
      */
     storageOptions?: Parameters<typeof localforage.createInstance>[0];
 }
+interface WhitelistInfo {
+    domain: string;
+    description?: string | null;
+}
+interface WhitelistResponse {
+    whitelist: WhitelistInfo | WhitelistInfo[] | null;
+    origin: string | null;
+}
 /**
  * AgentLink 客户端 SDK
  * 用于跨域访问存储服务
@@ -60,6 +68,11 @@ declare class AgentLinkClient implements IOriginStorageClient {
      * 获取所有 key 的数组
      */
     keys(): Promise<string[]>;
+    /**
+     * 获取白名单信息
+     * @param includeAll 如果为true，返回所有白名单；如果为false，只返回当前域名的白名单信息
+     */
+    getWhitelistInfo(includeAll?: boolean): Promise<WhitelistResponse>;
 }
 
-export { AgentLinkClient, type AgentLinkClientOptions };
+export { AgentLinkClient, type AgentLinkClientOptions, type WhitelistInfo, type WhitelistResponse };

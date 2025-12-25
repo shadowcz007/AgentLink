@@ -17,7 +17,7 @@ export const GET = requireAuth(async (req: NextRequest, { user }) => {
 
 export const POST = requireAuth(async (req: NextRequest, { user }) => {
   try {
-    const { domain } = await req.json();
+    const { domain, description } = await req.json();
 
     if (!domain || typeof domain !== 'string') {
       return NextResponse.json(
@@ -26,7 +26,7 @@ export const POST = requireAuth(async (req: NextRequest, { user }) => {
       );
     }
 
-    const result = await addDomain(domain.trim());
+    const result = await addDomain(domain.trim(), description?.trim());
     return NextResponse.json(result);
   } catch (error: any) {
     if (error.code === 'P2002') {

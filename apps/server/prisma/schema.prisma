@@ -10,11 +10,12 @@ datasource db {
 }
 
 model DomainWhitelist {
-  id        String   @id @default(cuid())
-  domain    String   @unique
-  status    String   @default("active") // active, inactive
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(cuid())
+  domain      String   @unique
+  description String?
+  status      String   @default("active") // active, inactive
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 
   @@map("domain_whitelist")
 }

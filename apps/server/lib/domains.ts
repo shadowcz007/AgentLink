@@ -22,13 +22,13 @@ export async function getActiveDomains() {
   });
 }
 
-export async function addDomain(domain: string) {
+export async function addDomain(domain: string, description?: string) {
   // 清除缓存
   cache.clear();
   activeDomainsCache = null;
   activeDomainsCacheTime = 0; // 重置时间戳，强制下次重新加载
   return db.domainWhitelist.create({
-    data: { domain },
+    data: { domain, description: description?.trim() || null },
   });
 }
 
@@ -50,6 +50,24 @@ export async function updateDomainStatus(id: string, status: 'active' | 'inactiv
   return db.domainWhitelist.update({
     where: { id },
     data: { status },
+  });
+}
+
+export async function updateDomain(id: string, data: { status?: 'active' | 'inactive'; description?: string | null }) {
+  // 清除缓存
+  cache.clear();
+  activeDomainsCache = null;
+  activeDomainsCacheTime = 0; // 重置时间戳，强制下次重新加载
+  const updateData: { status?: 'active' | 'inactive'; description?: string | null } = {};
+  if (data.status !== undefined) {
+    updateData.status = data.status;
+  }
+  if (data.description !== undefined) {
+    updateData.description = data.description?.trim() || null;
+  }
+  return db.domainWhitelist.update({
+    where: { id },
+    data: updateData,
   });
 }
 
@@ -148,5 +166,48 @@ export async function isDomainAllowedWithWildcard(origin: string): Promise<boole
   const result = false;
   cache.set(cacheKey, { result, timestamp: now });
   return result;
+}
+
+// 获取白名单信息（供客户端使用）
+export async function getWhitelistInfo(origin?: string) {
+  const domains = await db.domainWhitelist.findMany({
+    where: { status: 'active' },
+    select: {
+      domain: true,
+      description: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  // 如果提供了origin，返回匹配的域名信息
+  if (origin) {
+    let hostname: string;
+    try {
+      const url = new URL(origin);
+      hostname = url.hostname;
+    } catch {
+      return null;
+    }
+
+    // 精确匹配
+    const exactMatch = domains.find(d => d.domain === hostname);
+    if (exactMatch) {
+      return exactMatch;
+    }
+
+    // 通配符匹配
+    const parts = hostname.split('.');
+    for (let i = 0; i < parts.length; i++) {
+      const wildcardDomain = '*' + '.' + parts.slice(i).join('.');
+      const match = domains.find(d => d.domain === wildcardDomain);
+      if (match) {
+        return match;
+      }
+    }
+
+    return null;
+  }
+
+  return domains;
 }
 

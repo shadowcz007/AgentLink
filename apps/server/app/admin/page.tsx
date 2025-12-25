@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 interface Domain {
   id: string;
   domain: string;
+  description?: string | null;
   status: string;
   createdAt: string;
   updatedAt: string;
@@ -14,6 +15,7 @@ interface Domain {
 export default function AdminPage() {
   const [domains, setDomains] = useState<Domain[]>([]);
   const [newDomain, setNewDomain] = useState('');
+  const [newDescription, setNewDescription] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -52,7 +54,10 @@ export default function AdminPage() {
       const response = await fetch('/api/domains', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ domain: newDomain }),
+        body: JSON.stringify({ 
+          domain: newDomain,
+          description: newDescription || undefined,
+        }),
       });
 
       const data = await response.json();
@@ -64,6 +69,7 @@ export default function AdminPage() {
 
       setSuccess('域名添加成功');
       setNewDomain('');
+      setNewDescription('');
       fetchDomains();
     } catch (err) {
       setError('网络错误');
@@ -144,21 +150,30 @@ export default function AdminPage() {
             )}
 
             <form onSubmit={handleAddDomain} className="mb-6">
-              <div className="flex gap-2">
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={newDomain}
+                    onChange={(e) => setNewDomain(e.target.value)}
+                    placeholder="输入域名，如: example.com 或 *.example.com"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                    required
+                  />
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    添加域名
+                  </button>
+                </div>
                 <input
                   type="text"
-                  value={newDomain}
-                  onChange={(e) => setNewDomain(e.target.value)}
-                  placeholder="输入域名，如: example.com 或 *.example.com"
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                  required
+                  value={newDescription}
+                  onChange={(e) => setNewDescription(e.target.value)}
+                  placeholder="输入描述信息（可选）"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
                 />
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                >
-                  添加域名
-                </button>
               </div>
             </form>
 
@@ -168,6 +183,9 @@ export default function AdminPage() {
                   <tr>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       域名
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      描述
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       状态
@@ -183,7 +201,7 @@ export default function AdminPage() {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {domains.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-6 py-4 text-center text-gray-500">
+                      <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                         暂无域名
                       </td>
                     </tr>
@@ -192,6 +210,9 @@ export default function AdminPage() {
                       <tr key={domain.id}>
                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                           {domain.domain}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-gray-500">
+                          {domain.description || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap">
                           <span
@@ -233,4 +254,5 @@ export default function AdminPage() {
     </div>
   );
 }
+
 
