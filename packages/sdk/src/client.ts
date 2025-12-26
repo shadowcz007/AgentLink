@@ -46,6 +46,16 @@ export class AgentLinkClient implements IOriginStorageClient {
   }
 
   /**
+   * 获取当前 origin 的 hostname
+   */
+  private getCurrentHostname(): string {
+    if (typeof window !== 'undefined') {
+      return window.location.hostname + (window.location.port ? `:${window.location.port}` : '');
+    }
+    return '';
+  }
+
+  /**
    * 连接成功回调
    */
   onConnect(callback: () => void): () => void {
@@ -61,9 +71,14 @@ export class AgentLinkClient implements IOriginStorageClient {
 
   /**
    * 获取指定 key 的值
+   * @param key 数据键
+   * @param options 选项
+   * @param options.filterOrigin 指定要读取的域名（默认：当前域名）
+   * @param options.includeMetadata 是否包含元数据（origin 和 timestamp）
    */
-  async getItem(key: string): Promise<any> {
-    return this.client.getItem(key);
+  async getItem(key: string, options?: { filterOrigin?: string; includeMetadata?: boolean }): Promise<any> {
+    const filterOrigin = options?.filterOrigin || this.getCurrentHostname();
+    return this.client.getItem(key, { filterOrigin, includeMetadata: options?.includeMetadata });
   }
 
   /**
@@ -82,30 +97,73 @@ export class AgentLinkClient implements IOriginStorageClient {
 
   /**
    * 清空所有数据
+   * @param filterOrigin 指定要清除的域名（默认：当前域名）
    */
-  async clear(): Promise<void> {
-    return this.client.clear();
+  async clear(filterOrigin?: string): Promise<void> {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.clear(origin);
   }
 
   /**
    * 获取存储项数量
+   * @param filterOrigin 指定要统计的域名（默认：当前域名）
    */
-  async length(): Promise<number> {
-    return this.client.length();
+  async length(filterOrigin?: string): Promise<number> {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.length(origin);
   }
 
   /**
    * 获取指定索引的 key 名称
+   * @param index 索引
+   * @param filterOrigin 指定要查询的域名（默认：当前域名）
    */
-  async key(index: number): Promise<string> {
-    return this.client.key(index);
+  async key(index: number, filterOrigin?: string): Promise<string | null> {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.key(index, origin);
   }
 
   /**
    * 获取所有 key 的数组
+   * @param filterOrigin 指定要查询的域名（默认：当前域名）
    */
-  async keys(): Promise<string[]> {
-    return this.client.keys();
+  async keys(filterOrigin?: string): Promise<string[]> {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.keys(origin);
+  }
+
+  /**
+   * 获取包含元数据的数据项
+   * @param key 数据键
+   * @param filterOrigin 指定要读取的域名（默认：当前域名）
+   * @returns 包含 value、origin 和 timestamp 的对象
+   */
+  async getItemWithMetadata(key: string, filterOrigin?: string): Promise<{ value: any; origin: string; timestamp: number }> {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.getItem(key, { filterOrigin: origin, includeMetadata: true }) as Promise<{ value: any; origin: string; timestamp: number }>;
+  }
+
+  /**
+   * 获取所有数据项（支持过滤）
+   * @param filterOrigin 指定要读取的域名（默认：当前域名）
+   * @returns 包含所有数据的对象，key 为数据键，value 为包含 value、origin 和 timestamp 的对象
+   */
+  async getAllItems(filterOrigin?: string): Promise<{ [key: string]: { value: any; origin: string; timestamp: number } }> {
+    const origin = filterOrigin || this.getCurrentHostname();
+    const keys = await this.keys(origin);
+    const result: { [key: string]: { value: any; origin: string; timestamp: number } } = {};
+    
+    for (const key of keys) {
+      try {
+        const item = await this.getItemWithMetadata(key, origin);
+        result[key] = item;
+      } catch (error) {
+        // 忽略错误，继续处理下一个
+        console.warn(`Failed to get item ${key}:`, error);
+      }
+    }
+    
+    return result;
   }
 
   /**

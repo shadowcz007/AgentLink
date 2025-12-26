@@ -17,5 +17,6 @@ export default defineConfig({
   // 定义全局变量，用于替换 Node.js 内置模块
   define: {
     'process.env.NODE_ENV': '"production"',
+    '__DEV__': 'false', // 添加 __DEV__ 定义，生产环境设为 false
   },
 });

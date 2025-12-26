@@ -3,6 +3,7 @@ import {
   ClientToStorage,
   IChangeData,
   IOriginStorageClient,
+  LocalForageOptions,
   OriginStorageClientOptions,
   StorageError,
   StorageToClient,
@@ -93,10 +94,10 @@ export class OriginStorageClient
   }
 
   @listen
-  async change(options: { key: string | null }) {
+  async change(options: IChangeData) {
     this._change({
       ...options,
-      ...(typeof options.key === 'string'
+      ...(typeof options.key === 'string' && !options.value
         ? { value: await this.getItem(options.key) }
         : {}),
     });
@@ -122,13 +123,23 @@ export class OriginStorageClient
   /**
    * Get the value of the specified key.
    */
-  async getItem(key: string) {
+  async getItem(key: string, options?: { filterOrigin?: string; includeMetadata?: boolean }) {
     if (!this._isConnect) {
       await this._connectPromise;
     }
-    const result = await this.emit('getItem', { key });
+    const result = await this.emit('getItem', { key, ...options });
     if ((result as StorageError)?.error) {
       throw new Error(`'getItem' error: ${(result as StorageError).error}`);
+    }
+    if (options?.includeMetadata) {
+      // 确保返回完整的元数据对象
+      const metadataResult = result as { value: unknown; origin: string; timestamp: number };
+      // 验证元数据完整性
+      if (metadataResult && typeof metadataResult === 'object' && 'value' in metadataResult && 'origin' in metadataResult && 'timestamp' in metadataResult) {
+        return metadataResult;
+      }
+      // 如果格式不对，抛出错误
+      throw new Error(`Invalid metadata format: ${JSON.stringify(result)}`);
     }
     const { value } = result as { value: unknown };
     return value;
@@ -165,11 +176,11 @@ export class OriginStorageClient
   /**
    * Clear all key/value pairs in the storage.
    */
-  async clear() {
+  async clear(filterOrigin?: string) {
     if (!this._isConnect) {
       await this._connectPromise;
     }
-    const result = await this.emit('clear');
+    const result = await this.emit('clear', filterOrigin ? { filterOrigin } : undefined);
     if ((result as StorageError)?.error) {
       throw new Error(`'clear' error: ${(result as StorageError).error}`);
     }
@@ -179,11 +190,11 @@ export class OriginStorageClient
   /**
    * Get the number of key/value pairs in the storage.
    */
-  async length() {
+  async length(filterOrigin?: string) {
     if (!this._isConnect) {
       await this._connectPromise;
     }
-    const result = await this.emit('length');
+    const result = await this.emit('length', filterOrigin ? { filterOrigin } : undefined);
     if ((result as StorageError)?.error) {
       throw new Error(`'length' error: ${(result as StorageError).error}`);
     }
@@ -193,11 +204,11 @@ export class OriginStorageClient
   /**
    * Get the name of the nth key in the storage.
    */
-  async key(index: number) {
+  async key(index: number, filterOrigin?: string) {
     if (!this._isConnect) {
       await this._connectPromise;
     }
-    const result = await this.emit('key', { index });
+    const result = await this.emit('key', { index, ...(filterOrigin ? { filterOrigin } : {}) });
     if ((result as StorageError)?.error) {
       throw new Error(`'key' error: ${(result as StorageError).error}`);
     }
@@ -207,11 +218,11 @@ export class OriginStorageClient
   /**
    * Get all keys in the storage.
    */
-  async keys() {
+  async keys(filterOrigin?: string) {
     if (!this._isConnect) {
       await this._connectPromise;
     }
-    const result = await this.emit('keys');
+    const result = await this.emit('keys', filterOrigin ? { filterOrigin } : undefined);
     if ((result as StorageError)?.error) {
       throw new Error(`'keys' error: ${(result as StorageError).error}`);
     }

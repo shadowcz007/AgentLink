@@ -50,15 +50,23 @@ export interface OriginStorageOptions extends IFrameTransportInternalOptions {
   broadcastChannelName?: string;
 }
 
+export interface StoredData {
+  value: unknown;
+  origin: string;
+  timestamp: number;
+}
+
 export interface IChangeData {
   key: string | null;
   value?: any;
+  origin?: string;
+  timestamp?: number;
 }
 
 export type StorageToClient = {
   connect(): Promise<void>;
   getConfig(): Promise<LocalForageOptions>;
-  change(options: { key: string | null }): Promise<void>;
+  change(options: IChangeData): Promise<void>;
 };
 
 export interface StorageError {
@@ -69,26 +77,29 @@ export type ClientToStorage = {
   broadcastChanges(): Promise<{ broadcastChanges: boolean }>;
   getItem(options: {
     key: string;
-  }): Promise<{ value: unknown } | StorageError | void>;
+    filterOrigin?: string;
+    includeMetadata?: boolean;
+  }): Promise<{ value: unknown } | { value: unknown; origin: string; timestamp: number } | StorageError | void>;
   setItem(options: {
     key: string;
     value: unknown;
   }): Promise<StorageError | void>;
   removeItem(options: { key: string }): Promise<StorageError | void>;
-  clear(): Promise<StorageError | void>;
-  length(): Promise<{ length: number } | StorageError | void>;
+  clear(options?: { filterOrigin?: string }): Promise<StorageError | void>;
+  length(options?: { filterOrigin?: string }): Promise<{ length: number } | StorageError | void>;
   key(options: {
     index: number;
-  }): Promise<{ key: string } | StorageError | void>;
-  keys(): Promise<{ keys: string[] } | StorageError | void>;
+    filterOrigin?: string;
+  }): Promise<{ key: string | null } | StorageError | void>;
+  keys(options?: { filterOrigin?: string }): Promise<{ keys: string[] } | StorageError | void>;
 };
 
 export interface IOriginStorageClient {
-  getItem(key: string): Promise<any>;
+  getItem(key: string, options?: { filterOrigin?: string; includeMetadata?: boolean }): Promise<any>;
   setItem(key: string, value: any): Promise<void>;
   removeItem(key: string): Promise<void>;
-  clear(): Promise<void>;
-  length(): Promise<number>;
-  key(index: number): Promise<string>;
-  keys(): Promise<string[]>;
+  clear(filterOrigin?: string): Promise<void>;
+  length(filterOrigin?: string): Promise<number>;
+  key(index: number, filterOrigin?: string): Promise<string | null>;
+  keys(filterOrigin?: string): Promise<string[]>;
 }

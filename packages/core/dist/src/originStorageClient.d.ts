@@ -1,5 +1,5 @@
 import { IFrameTransport } from 'data-transport';
-import { ClientToStorage, IChangeData, IOriginStorageClient, OriginStorageClientOptions, StorageToClient } from './interface';
+import { ClientToStorage, IChangeData, IOriginStorageClient, LocalForageOptions, OriginStorageClientOptions, StorageToClient } from './interface';
 type OnChangeCallback = (data: IChangeData) => void;
 export declare class OriginStorageClient extends IFrameTransport.Main<{
     emit: ClientToStorage;
@@ -25,15 +25,16 @@ export declare class OriginStorageClient extends IFrameTransport.Main<{
         broadcastChanges: boolean;
     }>;
     private _change;
-    change(options: {
-        key: string | null;
-    }): Promise<void>;
-    getConfig(): Promise<LocalForageOptions>;
+    change(options: IChangeData): Promise<void>;
+    getConfig(): Promise<globalThis.LocalForageOptions>;
     connect(): Promise<void>;
     /**
      * Get the value of the specified key.
      */
-    getItem(key: string): Promise<unknown>;
+    getItem(key: string, options?: {
+        filterOrigin?: string;
+        includeMetadata?: boolean;
+    }): Promise<unknown>;
     /**
      * Set the value of the specified key.
      */
@@ -45,19 +46,19 @@ export declare class OriginStorageClient extends IFrameTransport.Main<{
     /**
      * Clear all key/value pairs in the storage.
      */
-    clear(): Promise<void>;
+    clear(filterOrigin?: string): Promise<void>;
     /**
      * Get the number of key/value pairs in the storage.
      */
-    length(): Promise<number>;
+    length(filterOrigin?: string): Promise<number>;
     /**
      * Get the name of the nth key in the storage.
      */
-    key(index: number): Promise<string>;
+    key(index: number, filterOrigin?: string): Promise<string | null>;
     /**
      * Get all keys in the storage.
      */
-    keys(): Promise<string[]>;
+    keys(filterOrigin?: string): Promise<string[]>;
 }
 export {};
 //# sourceMappingURL=originStorageClient.d.ts.map

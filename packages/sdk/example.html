@@ -11,6 +11,14 @@
     <h2>存储操作</h2>
     <button id="saveBtn">保存数据</button>
     <button id="loadBtn">加载数据</button>
+    <button id="loadWithMetadataBtn">加载数据（含元数据）</button>
+    <button id="getAllItemsBtn">获取所有数据</button>
+  </div>
+  <div style="margin-bottom: 20px;">
+    <h2>Origin 过滤</h2>
+    <input type="text" id="filterOriginInput" placeholder="输入要过滤的域名（如：localhost:8000）" style="width: 300px; padding: 5px; margin-right: 10px;">
+    <button id="loadWithFilterBtn">按域名加载</button>
+    <button id="keysWithFilterBtn">按域名获取 Keys</button>
   </div>
   <div style="margin-bottom: 20px;">
     <h2>白名单信息</h2>
@@ -63,9 +71,107 @@
     // 监听数据变更
     client.onChange((data) => {
       console.log('存储数据已变更:', data);
+      const resultDiv = document.getElementById('result');
       if (data.key === 'user') {
+        let message = '数据已更新';
+        if (data.origin) {
+          message += ` (来自: ${data.origin})`;
+        }
+        if (data.timestamp) {
+          message += ` (时间: ${new Date(data.timestamp).toLocaleString()})`;
+        }
+        resultDiv.textContent = message + '\n' + JSON.stringify(data.value, null, 2);
+      } else if (data.key === null) {
+        resultDiv.textContent = '所有数据已清除' + (data.origin ? ` (域名: ${data.origin})` : '');
+      }
+    });
+
+    // 加载数据（含元数据）
+    document.getElementById('loadWithMetadataBtn').addEventListener('click', async () => {
+      try {
+        const item = await client.getItemWithMetadata('user');
+        console.log(item)
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `
+          <h3>数据（含元数据）：</h3>
+          <p><strong>值：</strong></p>
+          <pre>${JSON.stringify(item.value, null, 2)}</pre>
+          <p><strong>来源域名：</strong>${item.origin}</p>
+          <p><strong>时间戳：</strong>${item.timestamp} (${new Date(item.timestamp).toLocaleString()})</p>
+          <pre>${JSON.stringify(item, null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error('加载失败:', error);
+        document.getElementById('result').textContent = '加载失败: ' + error.message;
+      }
+    });
+
+    // 获取所有数据
+    document.getElementById('getAllItemsBtn').addEventListener('click', async () => {
+      try {
+        const allItems = await client.getAllItems();
+        const resultDiv = document.getElementById('result');
+        if (Object.keys(allItems).length === 0) {
+          resultDiv.textContent = '暂无数据';
+          return;
+        }
+        let html = '<h3>所有数据：</h3><ul>';
+        for (const [key, item] of Object.entries(allItems)) {
+          html += `
+            <li>
+              <strong>Key：</strong>${key}<br>
+              <strong>值：</strong>${JSON.stringify(item.value)}<br>
+              <strong>来源：</strong>${item.origin}<br>
+              <strong>时间：</strong>${new Date(item.timestamp).toLocaleString()}
+            </li>
+          `;
+        }
+        html += '</ul>';
+        html += `<pre>${JSON.stringify(allItems, null, 2)}</pre>`;
+        resultDiv.innerHTML = html;
+      } catch (error) {
+        console.error('获取失败:', error);
+        document.getElementById('result').textContent = '获取失败: ' + error.message;
+      }
+    });
+
+    // 按域名加载数据
+    document.getElementById('loadWithFilterBtn').addEventListener('click', async () => {
+      try {
+        const filterOrigin = document.getElementById('filterOriginInput').value.trim();
+        if (!filterOrigin) {
+          document.getElementById('result').textContent = '请输入要过滤的域名';
+          return;
+        }
+        const user = await client.getItem('user', { filterOrigin });
         document.getElementById('result').textContent = 
-          '数据已更新: ' + JSON.stringify(data.value, null, 2);
+          `加载的数据 (${filterOrigin}): ` + JSON.stringify(user, null, 2);
+      } catch (error) {
+        console.error('加载失败:', error);
+        document.getElementById('result').textContent = '加载失败: ' + error.message;
+      }
+    });
+
+    // 按域名获取 Keys
+    document.getElementById('keysWithFilterBtn').addEventListener('click', async () => {
+      try {
+        const filterOrigin = document.getElementById('filterOriginInput').value.trim();
+        if (!filterOrigin) {
+          document.getElementById('result').textContent = '请输入要过滤的域名';
+          return;
+        }
+        const keys = await client.keys(filterOrigin);
+        const length = await client.length(filterOrigin);
+        const resultDiv = document.getElementById('result');
+        resultDiv.innerHTML = `
+          <h3>Keys (${filterOrigin})：</h3>
+          <p><strong>数量：</strong>${length}</p>
+          <p><strong>Keys：</strong></p>
+          <pre>${JSON.stringify(keys, null, 2)}</pre>
+        `;
+      } catch (error) {
+        console.error('获取失败:', error);
+        document.getElementById('result').textContent = '获取失败: ' + error.message;
       }
     });
 

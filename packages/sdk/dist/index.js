@@ -3743,7 +3743,7 @@ var require_originStorageClient = __commonJS({
           }
           const result = yield this.emit("broadcastChanges");
           if (!result.broadcastChanges) {
-            if (__DEV__) {
+            if (false) {
               console.error(`The 'broadcastChanges' in 'OriginStorage' has not been enabled, Please check ${this._uri}.`);
             }
           }
@@ -3763,7 +3763,7 @@ var require_originStorageClient = __commonJS({
       }
       change(options) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
-          this._change(Object.assign(Object.assign({}, options), typeof options.key === "string" ? { value: yield this.getItem(options.key) } : {}));
+          this._change(Object.assign(Object.assign({}, options), typeof options.key === "string" && !options.value ? { value: yield this.getItem(options.key) } : {}));
         });
       }
       getConfig() {
@@ -3775,7 +3775,7 @@ var require_originStorageClient = __commonJS({
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           var _a, _b;
           if (typeof this._connect !== "function") {
-            if (__DEV__) {
+            if (false) {
               throw new Error(`'onConnect' has not been called.`);
             }
           }
@@ -3787,14 +3787,21 @@ var require_originStorageClient = __commonJS({
       /**
        * Get the value of the specified key.
        */
-      getItem(key) {
+      getItem(key, options) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._isConnect) {
             yield this._connectPromise;
           }
-          const result = yield this.emit("getItem", { key });
+          const result = yield this.emit("getItem", Object.assign({ key }, options));
           if (result === null || result === void 0 ? void 0 : result.error) {
             throw new Error(`'getItem' error: ${result.error}`);
+          }
+          if (options === null || options === void 0 ? void 0 : options.includeMetadata) {
+            const metadataResult = result;
+            if (metadataResult && typeof metadataResult === "object" && "value" in metadataResult && "origin" in metadataResult && "timestamp" in metadataResult) {
+              return metadataResult;
+            }
+            throw new Error(`Invalid metadata format: ${JSON.stringify(result)}`);
           }
           const { value } = result;
           return value;
@@ -3833,12 +3840,12 @@ var require_originStorageClient = __commonJS({
       /**
        * Clear all key/value pairs in the storage.
        */
-      clear() {
+      clear(filterOrigin) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._isConnect) {
             yield this._connectPromise;
           }
-          const result = yield this.emit("clear");
+          const result = yield this.emit("clear", filterOrigin ? { filterOrigin } : void 0);
           if (result === null || result === void 0 ? void 0 : result.error) {
             throw new Error(`'clear' error: ${result.error}`);
           }
@@ -3848,12 +3855,12 @@ var require_originStorageClient = __commonJS({
       /**
        * Get the number of key/value pairs in the storage.
        */
-      length() {
+      length(filterOrigin) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._isConnect) {
             yield this._connectPromise;
           }
-          const result = yield this.emit("length");
+          const result = yield this.emit("length", filterOrigin ? { filterOrigin } : void 0);
           if (result === null || result === void 0 ? void 0 : result.error) {
             throw new Error(`'length' error: ${result.error}`);
           }
@@ -3863,12 +3870,12 @@ var require_originStorageClient = __commonJS({
       /**
        * Get the name of the nth key in the storage.
        */
-      key(index) {
+      key(index, filterOrigin) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._isConnect) {
             yield this._connectPromise;
           }
-          const result = yield this.emit("key", { index });
+          const result = yield this.emit("key", Object.assign({ index }, filterOrigin ? { filterOrigin } : {}));
           if (result === null || result === void 0 ? void 0 : result.error) {
             throw new Error(`'key' error: ${result.error}`);
           }
@@ -3878,12 +3885,12 @@ var require_originStorageClient = __commonJS({
       /**
        * Get all keys in the storage.
        */
-      keys() {
+      keys(filterOrigin) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._isConnect) {
             yield this._connectPromise;
           }
-          const result = yield this.emit("keys");
+          const result = yield this.emit("keys", filterOrigin ? { filterOrigin } : void 0);
           if (result === null || result === void 0 ? void 0 : result.error) {
             throw new Error(`'keys' error: ${result.error}`);
           }
@@ -5465,6 +5472,34 @@ var require_originStorage = __commonJS({
     var localforage_1 = tslib_1.__importDefault(require_localforage());
     var constant_1 = require_constant();
     var OriginStorage2 = class extends data_transport_1.IFrameTransport.IFrame {
+      /**
+       * 提取 hostname（去除协议）
+       */
+      extractHostname(origin) {
+        if (!origin || origin.trim() === "") {
+          return "";
+        }
+        try {
+          const url = new URL(origin);
+          return url.hostname + (url.port ? `:${url.port}` : "");
+        } catch (_a) {
+          const match = origin.match(/\/\/([^\/]+)/);
+          return match ? match[1] : origin;
+        }
+      }
+      /**
+       * 获取当前 origin 的 hostname
+       */
+      getCurrentOrigin() {
+        if (typeof window !== "undefined") {
+          const storageOrigin = window.STORAGE_ORIGIN;
+          if (storageOrigin) {
+            return this.extractHostname(storageOrigin);
+          }
+          return window.location.hostname + (window.location.port ? `:${window.location.port}` : "");
+        }
+        return "";
+      }
       constructor(_a = {}) {
         var { read = true, write = true, broadcastChanges = false, broadcastChannelName = constant_1.DefaultBroadcastChannelName } = _a, options = tslib_1.__rest(_a, ["read", "write", "broadcastChanges", "broadcastChannelName"]);
         super(options);
@@ -5497,19 +5532,42 @@ var require_originStorage = __commonJS({
       getItem(options) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._read) {
-            if (__DEV__) {
+            if (false) {
               console.error(constant_1.NoReadAccessError);
             }
             return { error: constant_1.NoReadAccessError };
           }
           try {
-            const value = yield this._localforage.getItem(options.key);
-            return { value };
+            const stored = yield this._localforage.getItem(options.key);
+            if (false) {
+              console.log("[OriginStorage] getItem - stored:", stored, "key:", options.key);
+            }
+            if (!stored) {
+              return { error: "Data not found" };
+            }
+            if (typeof stored !== "object" || !("origin" in stored) || !("timestamp" in stored) || !("value" in stored)) {
+              if (false) {
+                console.error("[OriginStorage] getItem - Invalid data format:", stored);
+              }
+              return { error: "Invalid data format: missing origin or timestamp" };
+            }
+            const filterOrigin = options.filterOrigin || this.getCurrentOrigin();
+            if (stored.origin !== filterOrigin) {
+              return { error: "Data does not belong to the specified origin" };
+            }
+            if (options.includeMetadata) {
+              return {
+                value: stored.value,
+                origin: stored.origin,
+                timestamp: stored.timestamp
+              };
+            }
+            return { value: stored.value };
           } catch (e) {
             if (typeof (e === null || e === void 0 ? void 0 : e.toString) === "function") {
               return { error: e.toString() };
             }
-            if (__DEV__) {
+            if (false) {
               throw e;
             }
           }
@@ -5519,21 +5577,35 @@ var require_originStorage = __commonJS({
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           var _a;
           if (!this._write) {
-            if (__DEV__) {
+            if (false) {
               console.error(constant_1.NoWriteAccessError);
             }
             return { error: constant_1.NoWriteAccessError };
           }
           try {
-            yield this._localforage.setItem(options.key, options.value);
+            const origin = this.getCurrentOrigin();
+            if (false) {
+              console.log("[OriginStorage] setItem - origin:", origin, "key:", options.key);
+            }
+            const storedData = {
+              value: options.value,
+              origin,
+              timestamp: Date.now()
+            };
+            if (false) {
+              console.log("[OriginStorage] setItem - storedData:", storedData);
+            }
+            yield this._localforage.setItem(options.key, storedData);
             (_a = this._broadcastChannel) === null || _a === void 0 ? void 0 : _a.postMessage({
-              key: options.key
+              key: options.key,
+              origin,
+              timestamp: storedData.timestamp
             });
           } catch (e) {
             if (typeof (e === null || e === void 0 ? void 0 : e.toString) === "function") {
               return { error: e.toString() };
             }
-            if (__DEV__) {
+            if (false) {
               throw e;
             }
           }
@@ -5543,66 +5615,91 @@ var require_originStorage = __commonJS({
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           var _a;
           if (!this._write) {
-            if (__DEV__) {
+            if (false) {
               console.error(constant_1.NoWriteAccessError);
             }
             return { error: constant_1.NoWriteAccessError };
           }
           try {
+            const stored = yield this._localforage.getItem(options.key);
             yield this._localforage.removeItem(options.key);
             (_a = this._broadcastChannel) === null || _a === void 0 ? void 0 : _a.postMessage({
-              key: options.key
+              key: options.key,
+              origin: stored === null || stored === void 0 ? void 0 : stored.origin,
+              timestamp: stored === null || stored === void 0 ? void 0 : stored.timestamp
             });
           } catch (e) {
             if (typeof (e === null || e === void 0 ? void 0 : e.toString) === "function") {
               return { error: e.toString() };
             }
-            if (__DEV__) {
+            if (false) {
               throw e;
             }
           }
         });
       }
-      clear() {
+      clear(options) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           var _a;
           if (!this._write) {
-            if (__DEV__) {
+            if (false) {
               console.error(constant_1.NoWriteAccessError);
             }
             return { error: constant_1.NoWriteAccessError };
           }
           try {
-            yield this._localforage.clear();
-            (_a = this._broadcastChannel) === null || _a === void 0 ? void 0 : _a.postMessage({
-              key: null
-            });
+            const filterOrigin = (options === null || options === void 0 ? void 0 : options.filterOrigin) || this.getCurrentOrigin();
+            const allKeys = yield this._localforage.keys();
+            const keysToDelete = [];
+            for (const key of allKeys) {
+              const stored = yield this._localforage.getItem(key);
+              if (stored && stored.origin === filterOrigin) {
+                keysToDelete.push(key);
+              }
+            }
+            for (const key of keysToDelete) {
+              yield this._localforage.removeItem(key);
+            }
+            if (keysToDelete.length > 0) {
+              (_a = this._broadcastChannel) === null || _a === void 0 ? void 0 : _a.postMessage({
+                key: null,
+                origin: filterOrigin
+              });
+            }
           } catch (e) {
             if (typeof (e === null || e === void 0 ? void 0 : e.toString) === "function") {
               return { error: e.toString() };
             }
-            if (__DEV__) {
+            if (false) {
               throw e;
             }
           }
         });
       }
-      length() {
+      length(options) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._read) {
-            if (__DEV__) {
+            if (false) {
               console.error(constant_1.NoReadAccessError);
             }
             return { error: constant_1.NoReadAccessError };
           }
           try {
-            const length = yield this._localforage.length();
-            return { length };
+            const filterOrigin = (options === null || options === void 0 ? void 0 : options.filterOrigin) || this.getCurrentOrigin();
+            const allKeys = yield this._localforage.keys();
+            let count = 0;
+            for (const key of allKeys) {
+              const stored = yield this._localforage.getItem(key);
+              if (stored && stored.origin === filterOrigin) {
+                count++;
+              }
+            }
+            return { length: count };
           } catch (e) {
             if (typeof (e === null || e === void 0 ? void 0 : e.toString) === "function") {
               return { error: e.toString() };
             }
-            if (__DEV__) {
+            if (false) {
               throw e;
             }
           }
@@ -5611,40 +5708,57 @@ var require_originStorage = __commonJS({
       key(options) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._read) {
-            if (__DEV__) {
+            if (false) {
               console.error(constant_1.NoReadAccessError);
             }
             return { error: constant_1.NoReadAccessError };
           }
           try {
-            const key = yield this._localforage.key(options.index);
+            const filterOrigin = options.filterOrigin || this.getCurrentOrigin();
+            const allKeys = yield this._localforage.keys();
+            const filteredKeys = [];
+            for (const key2 of allKeys) {
+              const stored = yield this._localforage.getItem(key2);
+              if (stored && stored.origin === filterOrigin) {
+                filteredKeys.push(key2);
+              }
+            }
+            const key = filteredKeys[options.index] || null;
             return { key };
           } catch (e) {
             if (typeof (e === null || e === void 0 ? void 0 : e.toString) === "function") {
               return { error: e.toString() };
             }
-            if (__DEV__) {
+            if (false) {
               throw e;
             }
           }
         });
       }
-      keys() {
+      keys(options) {
         return tslib_1.__awaiter(this, void 0, void 0, function* () {
           if (!this._read) {
-            if (__DEV__) {
+            if (false) {
               console.error(constant_1.NoReadAccessError);
             }
             return { error: constant_1.NoReadAccessError };
           }
           try {
-            const keys = yield this._localforage.keys();
-            return { keys };
+            const filterOrigin = (options === null || options === void 0 ? void 0 : options.filterOrigin) || this.getCurrentOrigin();
+            const allKeys = yield this._localforage.keys();
+            const filteredKeys = [];
+            for (const key of allKeys) {
+              const stored = yield this._localforage.getItem(key);
+              if (stored && stored.origin === filterOrigin) {
+                filteredKeys.push(key);
+              }
+            }
+            return { keys: filteredKeys };
           } catch (e) {
             if (typeof (e === null || e === void 0 ? void 0 : e.toString) === "function") {
               return { error: e.toString() };
             }
-            if (__DEV__) {
+            if (false) {
               throw e;
             }
           }
@@ -5679,13 +5793,13 @@ var require_originStorage = __commonJS({
     tslib_1.__decorate([
       data_transport_1.listen,
       tslib_1.__metadata("design:type", Function),
-      tslib_1.__metadata("design:paramtypes", []),
+      tslib_1.__metadata("design:paramtypes", [Object]),
       tslib_1.__metadata("design:returntype", Promise)
     ], OriginStorage2.prototype, "clear", null);
     tslib_1.__decorate([
       data_transport_1.listen,
       tslib_1.__metadata("design:type", Function),
-      tslib_1.__metadata("design:paramtypes", []),
+      tslib_1.__metadata("design:paramtypes", [Object]),
       tslib_1.__metadata("design:returntype", Promise)
     ], OriginStorage2.prototype, "length", null);
     tslib_1.__decorate([
@@ -5697,7 +5811,7 @@ var require_originStorage = __commonJS({
     tslib_1.__decorate([
       data_transport_1.listen,
       tslib_1.__metadata("design:type", Function),
-      tslib_1.__metadata("design:paramtypes", []),
+      tslib_1.__metadata("design:paramtypes", [Object]),
       tslib_1.__metadata("design:returntype", Promise)
     ], OriginStorage2.prototype, "keys", null);
   }
@@ -5746,6 +5860,15 @@ var AgentLinkClient = class {
     });
   }
   /**
+   * 获取当前 origin 的 hostname
+   */
+  getCurrentHostname() {
+    if (typeof window !== "undefined") {
+      return window.location.hostname + (window.location.port ? `:${window.location.port}` : "");
+    }
+    return "";
+  }
+  /**
    * 连接成功回调
    */
   onConnect(callback) {
@@ -5759,9 +5882,14 @@ var AgentLinkClient = class {
   }
   /**
    * 获取指定 key 的值
+   * @param key 数据键
+   * @param options 选项
+   * @param options.filterOrigin 指定要读取的域名（默认：当前域名）
+   * @param options.includeMetadata 是否包含元数据（origin 和 timestamp）
    */
-  async getItem(key) {
-    return this.client.getItem(key);
+  async getItem(key, options) {
+    const filterOrigin = options?.filterOrigin || this.getCurrentHostname();
+    return this.client.getItem(key, { filterOrigin, includeMetadata: options?.includeMetadata });
   }
   /**
    * 设置指定 key 的值
@@ -5777,27 +5905,65 @@ var AgentLinkClient = class {
   }
   /**
    * 清空所有数据
+   * @param filterOrigin 指定要清除的域名（默认：当前域名）
    */
-  async clear() {
-    return this.client.clear();
+  async clear(filterOrigin) {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.clear(origin);
   }
   /**
    * 获取存储项数量
+   * @param filterOrigin 指定要统计的域名（默认：当前域名）
    */
-  async length() {
-    return this.client.length();
+  async length(filterOrigin) {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.length(origin);
   }
   /**
    * 获取指定索引的 key 名称
+   * @param index 索引
+   * @param filterOrigin 指定要查询的域名（默认：当前域名）
    */
-  async key(index) {
-    return this.client.key(index);
+  async key(index, filterOrigin) {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.key(index, origin);
   }
   /**
    * 获取所有 key 的数组
+   * @param filterOrigin 指定要查询的域名（默认：当前域名）
    */
-  async keys() {
-    return this.client.keys();
+  async keys(filterOrigin) {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.keys(origin);
+  }
+  /**
+   * 获取包含元数据的数据项
+   * @param key 数据键
+   * @param filterOrigin 指定要读取的域名（默认：当前域名）
+   * @returns 包含 value、origin 和 timestamp 的对象
+   */
+  async getItemWithMetadata(key, filterOrigin) {
+    const origin = filterOrigin || this.getCurrentHostname();
+    return this.client.getItem(key, { filterOrigin: origin, includeMetadata: true });
+  }
+  /**
+   * 获取所有数据项（支持过滤）
+   * @param filterOrigin 指定要读取的域名（默认：当前域名）
+   * @returns 包含所有数据的对象，key 为数据键，value 为包含 value、origin 和 timestamp 的对象
+   */
+  async getAllItems(filterOrigin) {
+    const origin = filterOrigin || this.getCurrentHostname();
+    const keys = await this.keys(origin);
+    const result = {};
+    for (const key of keys) {
+      try {
+        const item = await this.getItemWithMetadata(key, origin);
+        result[key] = item;
+      } catch (error) {
+        console.warn(`Failed to get item ${key}:`, error);
+      }
+    }
+    return result;
   }
   /**
    * 获取白名单信息
